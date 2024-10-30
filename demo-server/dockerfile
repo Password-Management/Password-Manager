@@ -1,0 +1,40 @@
+# Stage 1: Build the Golang binary
+FROM golang:latest AS builder
+
+WORKDIR /app
+
+# Copy the go.mod and go.sum files first to leverage caching
+COPY demo-server/go.mod  ./demo-server/
+
+# Change to the password-manager directory
+WORKDIR /app/demo-server
+
+# Download Go modules
+RUN go mod download
+
+# Copy the rest of the project code
+COPY demo-server/ .
+
+# Build the Go application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
+
+# Stage 2: Create a minimal image with only the binary and necessary files
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copy the built binary and configuration files from the builder stage
+COPY --from=builder /app/demo-server/app .
+COPY --from=builder /app/demo-server/.env ./.env  
+
+# Set environment variables (you can modify these if needed)
+ENV DATABASE_URL "postgres://postgres:password@db:5432/passwordManagement?sslmode=disable"
+
+# Expose port 8000 for the Go application
+EXPOSE 8001
+
+# Set a volume for persistent data
+VOLUME /app/data
+
+# Command to run the Go application
+CMD ["./app"]

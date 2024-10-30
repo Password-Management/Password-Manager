@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS login_tbl;
+DROP TABLE IF EXISTS psswrd_tbl;
+DROP TABLE IF EXISTS user_tbl;
+DROP TABLE IF EXISTS master_tbl;

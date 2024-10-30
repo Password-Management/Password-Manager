@@ -1,0 +1,103 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Service
+  db:
+    image: postgres:13-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: passwordManagement
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # MailHog Service
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI to view emails
+    networks:
+      - app-network
+  rabbitmq:
+    image: "rabbitmq:3.13-management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # RabbitMQ main port
+      - "15672:15672" # RabbitMQ management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_log:/var/log/rabbitmq
+    networks:
+      - app-network
+
+  # Go Backend Service
+  password-manager:
+    build:
+      context: .
+      dockerfile: password-manager/Dockerfile
+    container_name: password-manager
+    environment:
+      DATABASE_URL: "postgres://postgres:password@db:5432/passwordManagement?sslmode=disable"
+      MAILHOG_HOST: "mailhog" 
+      MAILHOG_PORT: "1025"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - mailhog
+      - rabbitmq
+    volumes:
+      - app-data:/app/data # Specify internal path if necessary (e.g., /app/data)
+    networks:
+      - app-network
+
+  # Demo-service
+  demo-service:
+    build:
+      context: .
+      dockerfile: demo-server/Dockerfile
+    container_name: demo-server
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db
+      - mailhog
+      - rabbitmq
+    volumes:
+      - app-data:/app/data
+    networks:
+      - app-network
+
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: frontend-password-manager/Dockerfile  # Ensure correct casing if Dockerfile is capitalized
+  #   container_name: frontend-password-manager
+  #   ports:
+  #     - "3001:80"
+  #   depends_on:
+  #     - password-manager
+  #   networks:
+  #     - app-network
+  #   environment:
+  #     - CHOKIDAR_USEPOLLING=true
+
+volumes:
+  db-data:
+  app-data:
+  rabbitmq_data:
+  rabbitmq_log:
+
+networks:
+  app-network:
+    driver: bridge
