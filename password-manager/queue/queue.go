@@ -12,8 +12,6 @@ import (
 	"github.com/streadway/amqp"
 )
 
-
-
 const URL = "amqp://guest:guest@"
 
 func getRabbitMQContainerIP() (string, error) {
@@ -28,8 +26,8 @@ func getRabbitMQContainerIP() (string, error) {
 	return ipAddress, nil
 }
 
-func QueueConsumer() {
-	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/") // Adjust the URL based on your setup
+func QueueConsumer() error {
+	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq:5672/")
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
@@ -39,6 +37,7 @@ func QueueConsumer() {
 	channel, err := conn.Channel()
 	if err != nil {
 		log.Fatalf("Failed to open a channel: %s", err)
+		return err
 	}
 	defer channel.Close()
 
@@ -54,6 +53,7 @@ func QueueConsumer() {
 	)
 	if err != nil {
 		log.Fatalf("Failed to declare a queue: %s", err)
+		return err
 	}
 
 	// Start consuming messages from the queue
@@ -68,6 +68,7 @@ func QueueConsumer() {
 	)
 	if err != nil {
 		log.Fatalf("Failed to register a consumer: %s", err)
+		return err
 	}
 
 	log.Println("Waiting for messages. To exit press CTRL+C")
@@ -78,15 +79,15 @@ func QueueConsumer() {
 		err := json.Unmarshal(msg.Body, &productDetail)
 		if err != nil {
 			log.Printf("Error unmarshalling message: %s", err)
-			continue
+			return err
 		}
 		response, err := helpers.CreateConfig(productDetail)
 		if err != nil {
 			log.Printf("error while wrting the config: %s", err)
-			continue
+			return err
 		}
 		log.Println("The response: ", response)
-		// Print the received message
 		log.Printf("Message received and updated in the config.yml")
 	}
+	return nil
 }

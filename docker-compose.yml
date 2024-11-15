@@ -25,6 +25,9 @@ services:
       - "8025:8025" # Web UI to view emails
     networks:
       - app-network
+    volumes:
+      - ./mailhog_data:/data
+
   rabbitmq:
     image: "rabbitmq:3.13-management"
     container_name: rabbitmq
@@ -57,7 +60,7 @@ services:
       - mailhog
       - rabbitmq
     volumes:
-      - app-data:/app/data # Specify internal path if necessary (e.g., /app/data)
+      - ./config.yml:/app/config.yml
     networks:
       - app-network
 
@@ -81,7 +84,7 @@ services:
   # frontend:
   #   build:
   #     context: .
-  #     dockerfile: frontend-password-manager/Dockerfile  # Ensure correct casing if Dockerfile is capitalized
+  #     dockerfile: frontend-password-manager/Dockerfile  
   #   container_name: frontend-password-manager
   #   ports:
   #     - "3001:80"

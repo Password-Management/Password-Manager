@@ -1,12 +1,15 @@
 package encryption
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"io"
 	"log"
 )
 
@@ -119,4 +122,72 @@ func PemToPrivateKey(pemEncodedPrivateKey string) (*rsa.PrivateKey, error) {
 	}
 
 	return privateKey, nil
+}
+
+func EncryptASA(key, text string) (string, error) {
+	keyBytes := []byte(key)
+	plaintext := []byte(text)
+
+	block, err := aes.NewCipher(keyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	nonce := make([]byte, aesGCM.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+
+	ciphertext := aesGCM.Seal(nonce, nonce, plaintext, nil)
+
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func DecryptASA(key, encryptedText string) (string, error) {
+	// Decode the base64 encoded string to get the ciphertext
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedText)
+	if err != nil {
+		return "", err
+	}
+
+	// Convert the key to a byte slice
+	keyBytes := []byte(key)
+
+	// Generate a new AES cipher using the key
+	block, err := aes.NewCipher(keyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Create a GCM cipher
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	// Extract the nonce from the ciphertext
+	nonceSize := aesGCM.NonceSize()
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+
+	// Decrypt the data
+	plaintext, err := aesGCM.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Return the decrypted data as a string
+	return string(plaintext), nil
+}
+
+func GenerateKey(length int) (string, error) {
+	key := make([]byte, length)
+	if _, err := rand.Read(key); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(key), nil
 }

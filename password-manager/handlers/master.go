@@ -60,13 +60,14 @@ func (h *Handler) UpdateAlgorithmRequest(c *fiber.Ctx) error {
 
 func (h *Handler) CreateUserRequest(c *fiber.Ctx) error {
 	var requestBody *models.CreateUserRequest
+	masterId := c.Get("master-id")
 	log.Println("the requestBody: ", requestBody)
 	err := c.BodyParser(&requestBody)
 	if err != nil {
 		log.Println("Error in parsing the request Body")
 		return c.Status(fiber.StatusBadGateway).JSON(errors.New("error while parsing the request Body"))
 	}
-	resp, err := h.MasterService.CreateUser(requestBody)
+	resp, err := h.MasterService.CreateUser(requestBody, masterId)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.Failed(&fiber.Error{
 			Code:    500,

@@ -17,12 +17,15 @@ func UserServiceRequest() (UserService, error) {
 type UserServiceImpl struct {
 	UserRepo     dallayer.User
 	PasswordRepo dallayer.Password
+	MasterRepo   dallayer.Master
 }
 
 type UserService interface {
-	CreateWebsiteEntry(value *models.CreatePasswordRequest) (resp *models.SuccessResponse, err error)
-	GetPassword(value *models.GetPasswordRequest) (resp *models.SuccessResponse, err error)
-	ListWebsites(value *models.ListWebsiteRequest) (resp []*models.SuccessResponse, err error)
+	CreateWebsiteEntry(value *models.CreatePasswordRequest, userId string, masterId string) (resp *models.SuccessResponse, err error)
+	GetPassword(value *models.GetPasswordRequest, userId string, masterId string) (resp *models.SuccessResponse, err error)
+	ListWebsites(userId string, masterId string) (resp []*models.SuccessResponse, err error)
+	GetUserInfo(userId string, masterId string) (resp *models.GetUserInfoResponse, err error)
+	DeletePassword(websiteName string, masterId string, userId string) (*models.DeleteWebsiteResponse, error)
 }
 
 func (us *UserServiceImpl) SetupDalLayer() error {
@@ -37,15 +40,20 @@ func (us *UserServiceImpl) SetupDalLayer() error {
 		return errors.New("error while connecting to the master Dal layer: " + err.Error())
 	}
 
+	us.MasterRepo, err = dallayer.NewMasterDalRequest()
+	if err != nil {
+		return errors.New("error while connecting to the master Dal layer from service: " + err.Error())
+	}
+
 	return nil
 }
 
-func (us *UserServiceImpl) CreateWebsiteEntry(value *models.CreatePasswordRequest) (resp *models.SuccessResponse, err error) {
+func (us *UserServiceImpl) CreateWebsiteEntry(value *models.CreatePasswordRequest, userId string, masterId string) (resp *models.SuccessResponse, err error) {
 	err = us.SetupDalLayer()
 	if err != nil {
 		return nil, errors.New("error while setting up the dal connection")
 	}
-	userInfo, err := us.UserRepo.FindById(uuid.MustParse(value.UserId), uuid.MustParse(value.MasterId))
+	userInfo, err := us.UserRepo.FindById(uuid.MustParse(userId), uuid.MustParse(masterId))
 	if err != nil {
 		log.Println("the error = ", err)
 		return nil, errors.New("error while finding the user information: " + err.Error())
@@ -58,22 +66,27 @@ func (us *UserServiceImpl) CreateWebsiteEntry(value *models.CreatePasswordReques
 	if err != nil {
 		return nil, errors.New("error while encrypting your password: " + err.Error())
 	}
+
+	log.Println("the website name = ", value.WebisteName)
 	err = us.PasswordRepo.Create(&models.DbPassword{
-		UserId:      uuid.MustParse(value.UserId),
+		UserId:      uuid.MustParse(userId),
 		WebisteName: value.WebisteName,
 		Password:    encryptedPassword,
 	})
+	if err != nil {
+		return nil, errors.New("error while creating the password entry: " + err.Error())
+	}
 	return &models.SuccessResponse{
 		Message: "Entry for webiste " + value.WebisteName + " is added successfully",
 	}, nil
 }
 
-func (us *UserServiceImpl) GetPassword(value *models.GetPasswordRequest) (resp *models.SuccessResponse, err error) {
+func (us *UserServiceImpl) GetPassword(value *models.GetPasswordRequest, userId string, masterId string) (resp *models.SuccessResponse, err error) {
 	err = us.SetupDalLayer()
 	if err != nil {
 		return nil, errors.New("error while setting up the dal connection")
 	}
-	userInfo, err := us.UserRepo.FindById(uuid.MustParse(value.UserId), uuid.MustParse(value.MasterId))
+	userInfo, err := us.UserRepo.FindById(uuid.MustParse(userId), uuid.MustParse(masterId))
 	if err != nil {
 		log.Println("the error = ", err)
 		return nil, errors.New("error while finding the user information: " + err.Error())
@@ -82,7 +95,7 @@ func (us *UserServiceImpl) GetPassword(value *models.GetPasswordRequest) (resp *
 	if err != nil {
 		return nil, errors.New("error while convertng pem to private key: " + err.Error())
 	}
-	PasswordInfo, err := us.PasswordRepo.FindWebsiteName(value.WebisteName, uuid.MustParse(value.UserId))
+	PasswordInfo, err := us.PasswordRepo.FindWebsiteName(value.WebisteName, uuid.MustParse(userId))
 	if err != nil {
 		return nil, errors.New("error while getting the password information as per userinfo: " + err.Error())
 	}
@@ -96,14 +109,14 @@ func (us *UserServiceImpl) GetPassword(value *models.GetPasswordRequest) (resp *
 	}, nil
 }
 
-func (us *UserServiceImpl) ListWebsites(value *models.ListWebsiteRequest) (resp []*models.SuccessResponse, err error) {
+func (us *UserServiceImpl) ListWebsites(userId string, masterId string) (resp []*models.SuccessResponse, err error) {
 	err = us.SetupDalLayer()
 	if err != nil {
 		return nil, errors.New("error while setting up the dal connection")
 	}
-	PasswordInfo, err := us.PasswordRepo.FindAll(uuid.MustParse(value.UserId))
+	PasswordInfo, err := us.PasswordRepo.FindAll(uuid.MustParse(userId))
 	if err != nil {
-		return nil, errors.New("error while fetching the password info: "+ err.Error())
+		return nil, errors.New("error while fetching the password info: " + err.Error())
 	}
 	for _, info := range PasswordInfo {
 		var dummyresponse models.SuccessResponse
@@ -111,4 +124,78 @@ func (us *UserServiceImpl) ListWebsites(value *models.ListWebsiteRequest) (resp 
 		resp = append(resp, &dummyresponse)
 	}
 	return resp, nil
+}
+
+func (us *UserServiceImpl) GetUserInfo(userId string, masterId string) (resp *models.GetUserInfoResponse, err error) {
+	log.Println("From the service level = ", userId)
+	err = us.SetupDalLayer()
+	if err != nil {
+		return nil, errors.New("error while setting up the dal connection")
+	}
+	userInfo, err := us.UserRepo.FindById(uuid.MustParse(userId), uuid.MustParse(masterId))
+	if err != nil {
+		log.Println("the error = ", err)
+		return nil, errors.New("error while finding the user information: " + err.Error())
+	}
+	passwordDeails, err := us.PasswordRepo.FindAll(uuid.MustParse(userId))
+	if err != nil {
+		return nil, errors.New("error while finding the users website: " + err.Error())
+	}
+	var webisites []string
+	for _, i := range passwordDeails {
+		webisites = append(webisites, i.WebisteName)
+	}
+	return &models.GetUserInfoResponse{
+		Email:        userInfo.Email,
+		Name:         userInfo.Name,
+		WebsiteNames: webisites,
+	}, nil
+}
+
+func (us *UserServiceImpl) DeletePassword(websiteName string, masterId string, userId string) (*models.DeleteWebsiteResponse, error) {
+	err := us.SetupDalLayer()
+	if err != nil {
+		return nil, errors.New("error while setting up the dal connection for deleting the website entry")
+	}
+	// Getting the algorithm currently on the system
+	masterInfo, err := us.MasterRepo.FindBy(&models.DBMaster{
+		Id: uuid.MustParse(masterId),
+	})
+	if err != nil {
+		return nil, err
+	}
+	algo := masterInfo.Algorithm
+	flag := false
+	if algo == "RSA" {
+		_, err := us.UserRepo.FindByRSA(&models.DBRSAUser{
+			Id: uuid.MustParse(userId),
+		})
+		if err != nil {
+			return nil, err
+		}
+		flag = true
+	} else {
+		_, err := us.UserRepo.FindByASA(&models.DBASAUser{
+			Id: uuid.MustParse(userId),
+		})
+		if err != nil {
+			return nil, err
+		}
+		flag = true
+	}
+	if !flag {
+		return nil, errors.New("user not found.")
+	}
+	//Find if the website exist and delete it
+	websiteDetails, err := us.PasswordRepo.FindWebsiteName(websiteName, uuid.MustParse(userId))
+	if err != nil {
+		return nil, errors.New("website not found: " + err.Error())
+	}
+	err = us.PasswordRepo.DeletePassword(websiteDetails.WebisteName)
+	if err != nil {
+		return nil, errors.New("unable to delete the password entry for this website: " + err.Error())
+	}
+	return &models.DeleteWebsiteResponse{
+		Response: "Entry for websiteName " + websiteName + " deleted successfully",
+	}, nil
 }

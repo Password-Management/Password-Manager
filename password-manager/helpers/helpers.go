@@ -4,13 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/smtp"
 	"os"
 	"password-manager/models"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
@@ -43,7 +45,6 @@ func getEnvValue() error {
 }
 
 func SendEmail(body string, subject string) error {
-	viper.AutomaticEnv()
 	err := getEnvValue()
 	if err != nil {
 		return errors.New("error while setting global values" + err.Error())
@@ -132,4 +133,22 @@ func CreateConfig(product *models.Config) (string, error) {
 	}
 
 	return "YAML configuration written to product.yaml", nil
+}
+
+func GenerateRandomString(length int) string {
+	rand.Seed(time.Now().UnixNano())
+	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+
+	}
+	return string(b)
+}
+
+func GenerateSpecialKey() string {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	randomNumber := rand.Intn(900000) + 100000
+	return strconv.Itoa(randomNumber)
 }

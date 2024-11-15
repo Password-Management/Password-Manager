@@ -25,7 +25,7 @@ func (pt *ProductType) GetProductDetails(request *models.ProductDetailRequestBod
 	}
 	resp, err := queue.StartQueueAndPushProduct(request)
 	if err != nil {
-		log.Println("errro from queue: ", err)
+		log.Println("error from queue: ", err)
 		return "", err
 	}
 	return resp, nil

@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"log"
-	dallayer "password-manager/dalLayer"
 	"password-manager/db"
 	"password-manager/handlers"
 	"password-manager/queue"
@@ -25,34 +24,10 @@ func GetDbCheck() {
 			log.Fatal("error in creating a DB request")
 			return
 		}
-		resp, err := db.InitDB()
+		_, err = db.InitDB()
 		if err != nil {
 			log.Println("error in starting the DataBase: ", err)
-		}
-		fmt.Println("before If condition")
-		if resp != nil {
-			fmt.Println("Inside the RESP BLOCK !!!!!")
-			log.Println("THE DATABASE IS RUNNING")
-			dal, err := dallayer.NewMasterDalRequest()
-			if err != nil {
-				log.Println("error in checking the BlockChain (setting instance):", err)
-			}
-			resp, err := dal.FindAll()
-			if err != nil {
-				log.Println("error in checking the BlockChain (findALL):", err)
-			}
-			if len(resp) == 0 {
-				log.Println("Has no entry")
-				master, _ := services.NewMasterServiceRequest()
-				err := master.Create()
-				if err != nil {
-					log.Println(err, "Exiting the code")
-					return
-				}
-
-			} else {
-				log.Println("DataBase already has the master entry")
-			}
+			return
 		}
 		close(done)
 	}()
@@ -66,10 +41,6 @@ func Server() {
 		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH", // Specify allowed methods
 	}))
 	GetDbCheck()
-	go func() {
-		time.Sleep(10*time.Second)
-		queue.QueueConsumer()
-	}()
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"status":  "200",
@@ -77,6 +48,15 @@ func Server() {
 		})
 	})
 	var Log *log.Logger
+	go func() {
+		time.Sleep(15 * time.Second)
+		err := queue.QueueConsumer()
+		if err != nil {
+			log.Println("error while reading the queue: " + err.Error())
+			return
+		}
+		log.Println("QUEUE IS READY FOR RECEIVING CONNECTION CREATE PRODUCT ENTRY")
+	}()
 	ser, err := services.NewMasterServiceRequest()
 	if err != nil {
 		log.Println("master service instance starting failure: " + err.Error())
@@ -87,7 +67,17 @@ func Server() {
 		log.Println("user service instance starting failure: " + err.Error())
 		return
 	}
-	handlers := handlers.NewHandler(Log).MasterHandler(ser).UserHandler(userService)
+	adminService, err := services.NewAdminService()
+	if err != nil {
+		log.Println("admin service instance starting failure: " + err.Error())
+		return
+	}
+	loginService, err := services.LoginServiceRequest()
+	if err != nil {
+		log.Println("login service instance starting failure: " + err.Error())
+		return
+	}
+	handlers := handlers.NewHandler(Log).MasterHandler(ser).UserHandler(userService).AdminHandler(adminService).LoginHandler(loginService)
 	Routes(app, handlers)
 	err = app.Listen(":8000")
 	if err != nil {

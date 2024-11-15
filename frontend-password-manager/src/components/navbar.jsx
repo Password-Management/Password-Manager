@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from "react";
 import logo from "../assets/K-2.png";
 import { Link } from "react-router-dom";
+import { FaUser } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { IoExit } from "react-icons/io5";
 
 const Navbar = () => {
   let navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const userType = localStorage.getItem("navbarUserType");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  let content;
+  const [profileOption, setProfileOption] = useState(false);
+
   useEffect(() => {
     const isLoggedCheck = localStorage.getItem("isLoggedIn");
     console.log(isLoggedCheck);
-    if (isLoggedCheck) {
+    if (isLoggedCheck === "true") {
       setIsLoggedIn(true);
     }
   }, []);
+
+  const toggleProfileDropDown = () => {
+    setProfileOption(!profileOption);
+  };
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -32,6 +39,7 @@ const Navbar = () => {
     }
   };
 
+  let content;
   if (isLoggedIn && userType === "master") {
     content = (
       <>
@@ -57,15 +65,18 @@ const Navbar = () => {
   } else if (isLoggedIn && userType === "user") {
     content = (
       <>
-        <li>
-          <button className="hover:text-gray-500">Add Password</button>
-        </li>
-        <li>
-          <button className="hover:text-gray-500">List Websites</button>
-        </li>
-        <li>
-          <button className="hover:text-gray-500">Get Passwords</button>
-        </li>
+        <Link to={"/user/addpassword"}>
+          <li>
+            <button className="hover:text-gray-500">Add Password</button>
+          </li>
+        </Link>
+        <Link to={"/user/info"}>
+          <li>
+            <button className="hover:text-gray-500">
+              Personal Information
+            </button>
+          </li>
+        </Link>
       </>
     );
   } else {
@@ -106,19 +117,39 @@ const Navbar = () => {
             {content}
           </ul>
         </div>
-        {/* Request Product Button (always visible) */}
-        <div className="hidden md:flex">
-          <Link to="/requestproduct">
-            <button className="bg-[#AA7DFF] text-white px-5 py-2 rounded-full hover:bg-[#C49DFF]">
-              Request Product
-            </button>
-          </Link>
-        </div>
 
-        {/* Hamburger Menu (only visible on small screens) */}
+        {isLoggedIn ? (
+          <FaUser
+            className="text-xl cursor-pointer"
+            onClick={toggleProfileDropDown}
+          />
+        ) : (
+          <div className="hidden md:flex">
+            <Link to="/requestproduct">
+              <button className="bg-[#AA7DFF] text-white px-5 py-2 rounded-full hover:bg-[#C49DFF]">
+                Request Product
+              </button>
+            </Link>
+          </div>
+        )}
+
+        {profileOption && (
+          <div className="absolute right-0 mt-20 w-48 h-12 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+            <ul className="py-1">
+              <li>
+                <a
+                  className="block px-4 py-2 text-gray-700 hover:bg-blue-200 flex items-center space-x-2"
+                >
+                  <IoExit className="text-xl" />
+                  <span className="font-bold">Logout</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        )}
+
         <div className="md:hidden flex items-center">
           <button onClick={toggleMenu}>
-            {/* Simple Hamburger Icon */}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -126,7 +157,7 @@ const Navbar = () => {
               stroke="currentColor"
               strokeWidth={2}
               className={`w-8 h-8 text-gray-800 transition duration-300 ease-in-out ${
-                isMenuOpen ? "transform rotate-45" : "" // Add transform for open state
+                isMenuOpen ? "transform rotate-45" : ""
               }`}
             >
               {isMenuOpen ? (
@@ -152,11 +183,15 @@ const Navbar = () => {
         <div className="md:hidden bg-white shadow-lg flex flex-col space-y-4 px-4 py-6 absolute w-full top-16 z-10">
           <ul className="flex flex-col space-y-2">
             {content}
-            <Link to="/requestproduct">
-              <button className="bg-[#AA7DFF] text-white px-5 py-2 rounded-full hover:bg-[#C49DFF]">
-                Request Product
-              </button>
-            </Link>
+            {!isLoggedIn ? (
+              <Link to="/requestproduct">
+                <button className="bg-[#AA7DFF] text-white px-5 py-2 rounded-full hover:bg-[#C49DFF]">
+                  Request Product
+                </button>
+              </Link>
+            ) : (
+              <></>
+            )}
           </ul>
         </div>
       )}

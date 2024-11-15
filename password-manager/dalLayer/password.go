@@ -19,6 +19,8 @@ type Password interface {
 	Create(value *models.DbPassword) error
 	FindWebsiteName(wesbite string, userId uuid.UUID) (*models.DbPassword, error)
 	FindAll(userId uuid.UUID) ([]*models.DbPassword, error)
+	DeleteUserPassword(userId uuid.UUID) error
+	DeletePassword(website string) error
 }
 
 func (ps *PasswordImpl) Create(value *models.DbPassword) error {
@@ -95,4 +97,50 @@ func (ps *PasswordImpl) FindAll(userId uuid.UUID) ([]*models.DbPassword, error) 
 		return nil, result.Error
 	}
 	return response, nil
+}
+
+func (ps *PasswordImpl) DeleteUserPassword(userId uuid.UUID) error {
+	db, err := db.NewDbRequest()
+	if err != nil {
+		log.Println("error in creating a DB request")
+		return err
+	}
+	dbConn, err := db.InitDB()
+	if err != nil {
+		return err
+	}
+	transaction := dbConn.Begin()
+	if transaction.Error != nil {
+		return transaction.Error
+	}
+	if err := transaction.Unscoped().Delete(nil, &models.DbPassword{
+		UserId: userId,
+	}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ps *PasswordImpl) DeletePassword(website string) error {
+	db, err := db.NewDbRequest()
+	if err != nil {
+		log.Println("error in creating a DB request")
+		return err
+	}
+	dbConn, err := db.InitDB()
+	if err != nil {
+		return err
+	}
+	transaction := dbConn.Begin()
+	if transaction.Error != nil {
+		return transaction.Error
+	}
+	defer transaction.Rollback()
+	if err := transaction.Unscoped().Where("website_name = ?", website).Delete(&models.DbPassword{
+		WebisteName: website,
+	}).Error; err != nil {
+		return err
+	}
+	transaction.Commit()
+	return nil
 }

@@ -15,11 +15,9 @@ type UpdateAlgorithmRequest struct {
 }
 
 type CreateUserRequest struct {
-	Name       string `json:"name"`
-	Password   string `json:"password"`
-	Email      string `json:"email"`
-	MasterId   string `json:"master_id"`
-	SpecialKey string `json:"special_key"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	IsMaster bool   `json:"is_master"`
 }
 
 type ListUserRequest struct {
@@ -27,19 +25,29 @@ type ListUserRequest struct {
 }
 
 type CreatePasswordRequest struct {
-	UserId      string `json:"user_id"`
 	WebisteName string `json:"website_name"`
 	Password    string `json:"password"`
-	MasterId    string `json:"master_id"`
 }
 
 type GetPasswordRequest struct {
-	UserId      string `json:"user_id"`
 	WebisteName string `json:"website_name"`
-	MasterId    string `json:"master_id"`
 }
 
 type ListWebsiteRequest struct {
 	UserId   string `json:"user_id"`
 	MasterId string `json:"master_id"`
+}
+
+type GetUserInfoRequest struct {
+	UserId   string `json:"user_id"`
+	MasterId string `json:"master_id"`
+}
+
+type MasterLoginRequest struct {
+	SpecialKey string `json:"special_key"`
+}
+
+type UserLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }

@@ -17,7 +17,7 @@ type Master interface {
 	Update(value *models.DBMaster) (*models.DBMaster, error)
 }
 
-type MasterImpl struct {}
+type MasterImpl struct{}
 
 func (mas *MasterImpl) Create(value *models.DBMaster) error {
 	db, err := db.NewDbRequest()
