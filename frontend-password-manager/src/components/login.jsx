@@ -1,32 +1,50 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import { MasterLogin, UserLogin } from "../services/loginService/loginService";
 const LoginPage = () => {
   let navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [data, setData] = useState({});
-  sessionStorage.setItem("isPageRefreshed", false);
+  const [error, setError] = useState("");
+  const [userData, setUserData] = useState({
+    email: "",
+    password: "",
+  });
+  const [specialKey, setSpecialKey] = useState("");
   const userType = localStorage.getItem("userType");
   const togglePasswordVisibility = () => {
     setShowPassword((prevState) => !prevState);
   };
-  console.log(data);
   const SuucessMasterLogin = async (e) => {
-    e.preventDefault();
-    localStorage.setItem("isLoggedIn", true)
-    localStorage.setItem("navbarUserType", "master")
-    localStorage.setItem("specialKey", data.password)
-    if (data.password === "123456") {
+    e.preventDefault()
+    const response = await MasterLogin(specialKey.password)
+    console.log(response)
+    if (response.result.message.includes("Login of master successfull") || response.result.message.includes("Reloging in user")) {
+      localStorage.setItem("isLoggedIn", true);
+      localStorage.setItem("navbarUserType", "master");
+      localStorage.setItem("specialKey", specialKey.password)
+      localStorage.setItem("masterId", response.result.master_id);
       navigate("/masterhomepage");
+    } else {
+      setError("Master Not found or key provided is incorrect")
     }
   };
 
   const SuccessUserLogin = async (e) => {
-    localStorage.setItem("isLoggedIn", true)
-    localStorage.setItem("navbarUserType", "user")
     e.preventDefault();
-    if (data.password === "123456" && data.email === "vivek@gmail.com") {
+    const response = await UserLogin(userData.email, userData.password);
+    if (response.result.message.includes("User Logged in successfully") || response.result.message.includes("Reloging in user")) {
+      localStorage.setItem("navbarUserType", "user");
+      localStorage.setItem("isLoggedIn", true);
+      localStorage.setItem("masterId", response.result.master_id);
+      localStorage.setItem("userId", response.result.user_id);
       navigate("/userhomepage");
+    } else if (response.result.message === "Password is incorrect") {
+      setError("Password you provided is wrong please check your password");
+    } else if (response.result.message === "User not found") {
+      setError("User doesnt exist please check your email or password");
+    } else {
+      setError("Please check the password or email you provided");
     }
   };
 
@@ -46,7 +64,10 @@ const LoginPage = () => {
                   name="email"
                   placeholder="Email"
                   onChange={(e) =>
-                    setData({ ...data, [e.target.name]: e.target.value })
+                    setUserData({
+                      ...userData,
+                      [e.target.name]: e.target.value,
+                    })
                   }
                 />
                 <div className="relative">
@@ -56,7 +77,10 @@ const LoginPage = () => {
                     name="password"
                     placeholder="Password"
                     onChange={(e) =>
-                      setData({ ...data, [e.target.name]: e.target.value })
+                      setUserData({
+                        ...userData,
+                        [e.target.name]: e.target.value,
+                      })
                     }
                   />
                   <svg
@@ -72,7 +96,7 @@ const LoginPage = () => {
                     <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
                   </svg>
                 </div>
-
+                {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button
                   onClick={SuccessUserLogin}
                   className="bg-[#AA7DFF] rounded-xl text-white py-2 hover:scale-105 hover:bg-[#C49DFF] transition-transform duration-300"
@@ -96,10 +120,14 @@ const LoginPage = () => {
                     name="password"
                     placeholder="Special Key"
                     onChange={(e) =>
-                      setData({ ...data, [e.target.name]: e.target.value })
+                      setSpecialKey({
+                        ...specialKey,
+                        [e.target.name]: e.target.value,
+                      })
                     }
                   />
                 </div>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button
                   onClick={SuucessMasterLogin}
                   className="bg-[#AA7DFF] rounded-xl text-white py-2 hover:scale-105 hover:bg-[#C49DFF] transition-transform duration-300"

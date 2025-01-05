@@ -63,6 +63,7 @@ func EncryptPassword(publicKey *rsa.PublicKey, password string) (string, error) 
 	if err != nil {
 		return "", err
 	}
+	log.Println("the ecrypted bytes from the encyrption:  ", encryptedBytes)
 
 	// Convert the encrypted bytes to a Base64-encoded string for storage
 	encodedString := base64.StdEncoding.EncodeToString(encryptedBytes)
@@ -72,11 +73,13 @@ func EncryptPassword(publicKey *rsa.PublicKey, password string) (string, error) 
 // DecryptPassword decrypts the encrypted password using the RSA private key
 func DecryptPassword(privateKey *rsa.PrivateKey, encryptedPassword string) (string, error) {
 	// First, decode the Base64 encoded string to get the encrypted bytes
+	log.Println("before encrpyting: ", encryptedPassword)
 	encryptedBytes, err := base64.StdEncoding.DecodeString(encryptedPassword)
 	if err != nil {
 		log.Println("Failed to base64 decode encrypted password:", err)
 		return "", err
 	}
+	log.Println("the encrypted Bytes = ", encryptedBytes)
 
 	// Decrypt the password using PKCS1v15
 	decryptedBytes, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, encryptedBytes)
@@ -84,9 +87,11 @@ func DecryptPassword(privateKey *rsa.PrivateKey, encryptedPassword string) (stri
 		log.Println("Failed to decrypt password:", err)
 		return "", err
 	}
+	log.Println("The decrpytedBytes = ", decryptedBytes)
 
 	// Return the decrypted password as a string
 	return string(decryptedBytes), nil
+
 }
 
 // PemToPublicKey converts a PEM encoded public key string back to an RSA public key
@@ -115,6 +120,7 @@ func PemToPrivateKey(pemEncodedPrivateKey string) (*rsa.PrivateKey, error) {
 		return nil, errors.New("failed to decode PEM block containing private key")
 	}
 
+	// Parse the RSA private key
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		log.Println("Failed to parse private key:", err)

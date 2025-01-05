@@ -1,24 +1,49 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState , useRef} from "react";
 import logo from "../assets/K-2.png";
 import { Link } from "react-router-dom";
 import { FaUser } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { IoExit } from "react-icons/io5";
+import { UserLogout } from "../services/loginService/loginService";
 
 const Navbar = () => {
   let navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const userType = localStorage.getItem("navbarUserType");
+  const dropdownRef = useRef(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [profileOption, setProfileOption] = useState(false);
+  
+
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setProfileOption(false);
+    }
+  };
 
   useEffect(() => {
     const isLoggedCheck = localStorage.getItem("isLoggedIn");
-    console.log(isLoggedCheck);
     if (isLoggedCheck === "true") {
       setIsLoggedIn(true);
     }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
+
+  const handleLogout = async () => {
+    console.log("Handle logout is called")
+    let id = "";
+    if (userType === "master") {
+      id = localStorage.getItem("masterId");
+    } else {
+      id = localStorage.getItem("userId");
+    }
+    console.log("id = ", id)
+    const response = await UserLogout(id);
+    console.log(response.result);
+  };
 
   const toggleProfileDropDown = () => {
     setProfileOption(!profileOption);
@@ -67,39 +92,45 @@ const Navbar = () => {
       <>
         <Link to={"/user/addpassword"}>
           <li>
-            <button className="hover:text-gray-500">Add Password</button>
+            <button className="hover:text-gray-500">Add Credentials</button>
           </li>
         </Link>
         <Link to={"/user/info"}>
           <li>
-            <button className="hover:text-gray-500">
-              Personal Information
-            </button>
+            <button className="hover:text-gray-500">Account Information</button>
           </li>
         </Link>
       </>
     );
+  } 
+
+  let button;
+  if (isLoggedIn) {
+    button = (
+      <div key="loggedIn" className="hidden md:flex">
+        <FaUser
+          className="text-xl cursor-pointer"
+          onClick={toggleProfileDropDown}
+        />
+      </div>
+    );
   } else {
-    content = (
-      <>
-        <li>
-          <Link to={"/about"}>
-            <button className="hover:text-gray-500">About</button>
+    button = (
+      <div key="loggedOut">
+        <div className="hidden md:flex">
+          <Link to="/upgradeproduct">
+            <button className="bg-[#AA7DFF] text-white px-5 py-2 rounded-full hover:bg-[#C49DFF]">
+              Upgrade Product
+            </button>
           </Link>
-        </li>
-        <li>
-          <Link to={"/price"}>
-            <button className="hover:text-gray-500">Pricing</button>
-          </Link>
-        </li>
-      </>
+        </div>
+      </div>
     );
   }
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white w-full z-10">
       <nav className="flex justify-between items-center px-4 md:px-8 h-16">
-        {/* Logo Section */}
         <div className="flex items-center">
           <img
             className="w-16 cursor-pointer"
@@ -118,31 +149,26 @@ const Navbar = () => {
           </ul>
         </div>
 
-        {isLoggedIn ? (
-          <FaUser
-            className="text-xl cursor-pointer"
-            onClick={toggleProfileDropDown}
-          />
-        ) : (
-          <div className="hidden md:flex">
-            <Link to="/requestproduct">
-              <button className="bg-[#AA7DFF] text-white px-5 py-2 rounded-full hover:bg-[#C49DFF]">
-                Request Product
-              </button>
-            </Link>
-          </div>
-        )}
+        {button}
 
         {profileOption && (
-          <div className="absolute right-0 mt-20 w-48 h-12 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+          <div 
+          ref={dropdownRef}
+          className="absolute right-0 mt-20 w-48 h-12 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
             <ul className="py-1">
               <li>
-                <a
-                  className="block px-4 py-2 text-gray-700 hover:bg-blue-200 flex items-center space-x-2"
+                <button
+                  onClick={() => {
+                    setProfileOption(false);
+                    handleLogout();
+                    localStorage.setItem("path", "logout");
+                    navigate("/reset");
+                  }}
+                  className="w-full px-4 py-2 text-gray-700 hover:bg-blue-200 flex items-center space-x-2"
                 >
                   <IoExit className="text-xl" />
-                  <span className="font-bold">Logout</span>
-                </a>
+                  Logout
+                </button>
               </li>
             </ul>
           </div>
@@ -184,9 +210,9 @@ const Navbar = () => {
           <ul className="flex flex-col space-y-2">
             {content}
             {!isLoggedIn ? (
-              <Link to="/requestproduct">
+              <Link to="/upgradeproduct">
                 <button className="bg-[#AA7DFF] text-white px-5 py-2 rounded-full hover:bg-[#C49DFF]">
-                  Request Product
+                  Upgrade Product
                 </button>
               </Link>
             ) : (

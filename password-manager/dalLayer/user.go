@@ -65,7 +65,7 @@ func (us *UserImpl) FindAllRSAUser() ([]*models.DBRSAUser, error) {
 	defer transaction.Rollback()
 	var response []*models.DBRSAUser
 	defer transaction.Rollback()
-	result := transaction.Find(&response)
+	result := transaction.Find(&response).Where("deleted_at =? AND deleted_by=?", nil, nil)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -114,7 +114,7 @@ func (us *UserImpl) FindById(userId uuid.UUID, masterId uuid.UUID) (*models.DBRS
 	var response *models.DBRSAUser
 	defer transaction.Rollback()
 	result := transaction.Last(&response, models.DBRSAUser{
-		Id:       userId,
+		UserId:   userId,
 		MasterId: masterId,
 	})
 	log.Println("the result value = ", result)
@@ -208,19 +208,20 @@ func (us *UserImpl) Delete(id uuid.UUID, userType string) error {
 		return transaction.Error
 	}
 	if userType == "RSA" {
-		deleteUser := transaction.Unscoped().Delete(nil, &models.DBRSAUser{
-			Id: id,
+		deleteUser := transaction.Unscoped().Where("id =?", id).Delete(&models.DBRSAUser{
+			UserId: id,
 		})
 		if deleteUser.Error != nil {
 			return deleteUser.Error
 		}
 	} else {
-		deleteUser := transaction.Unscoped().Delete(nil, &models.DBASAUser{
-			Id: id,
+		deleteUser := transaction.Unscoped().Where("id=?", id).Delete(&models.DBASAUser{
+			UserId: id,
 		})
 		if deleteUser.Error != nil {
 			return deleteUser.Error
 		}
 	}
+	transaction.Commit()
 	return nil
 }

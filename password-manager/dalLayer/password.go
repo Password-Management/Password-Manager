@@ -113,7 +113,7 @@ func (ps *PasswordImpl) DeleteUserPassword(userId uuid.UUID) error {
 	if transaction.Error != nil {
 		return transaction.Error
 	}
-	if err := transaction.Unscoped().Delete(nil, &models.DbPassword{
+	if err := transaction.Unscoped().Where("").Delete(nil, &models.DbPassword{
 		UserId: userId,
 	}).Error; err != nil {
 		return err

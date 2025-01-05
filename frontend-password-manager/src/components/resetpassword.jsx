@@ -4,12 +4,18 @@ import { Link } from "react-router-dom";
 
 const ResetPassword = () => {
   const userType = localStorage.getItem("userType");
+  var content;
+  if (userType === "master") {
+    content = "Reset Master SpecialKey";
+  } else {
+    content = "Reset Password";
+  }
   return (
     <section className="flex h-screen items-center justify-center">
       <div className="flex flex-col md:flex-row rounded-2xl p-5 md:p-8 items-center max-w-5xl w-full">
         <div className="w-full md:w-1/2 px-6 md:px-8 mr-10">
           <h2 className="font-bold text-3xl text-[#181B1E] text-center md:text-left">
-            Reset Password
+            {content}
           </h2>
           {userType === "user" ? (
             <form className="flex flex-col gap-4 mt-6">
@@ -37,17 +43,26 @@ const ResetPassword = () => {
                   <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
                 </svg>
               </div>
-              <Link to={"/newpassword"}>
+              <Link to={"/otp"}>
                 <button className="bg-[#AA7DFF] rounded-xl text-white py-2 px-8 hover:scale-105 hover:bg-[#C49DFF] transition-transform duration-300">
                   Confirm Details
                 </button>
               </Link>
             </form>
           ) : (
-            <span className="flex flex-col gap-4 mt-6">
-              Please contact via email admin@keypass.in as master log you need
-              to use special key. Charges may apply.{" "}
-            </span>
+            <>
+              <span className="flex flex-col gap-4 mt-6">
+                For assistance with your master login, please contact us at
+                admin@keypass.in. Please note that a special key is required for
+                access, and additional charges may apply.
+              </span>
+              <Link to={"/masterhomepage"}>
+              <button 
+              className="bg-[#AA7DFF] rounded-xl text-white mt-3 py-2 px-8 hover:scale-105 hover:bg-[#C49DFF] transition-transform duration-300">
+                Home
+              </button>
+              </Link>
+            </>
           )}
         </div>
         <div className="hidden relative w-1/2 h-full lg:flex items-center justify-center">

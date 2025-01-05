@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import {
   GetAllUsers,
   AddUser,
+  GetUserIdByEmail,
+  DeleteUser,
 } from "../../services/masterService/masterservice";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { TbUserSearch } from "react-icons/tb";
@@ -10,7 +12,7 @@ const AddUsers = () => {
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [isMaster, setIsMaster] = useState(false);
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -30,19 +32,27 @@ const AddUsers = () => {
   // Handle adding a new user
   const handleSubmit = async () => {
     try {
-      await AddUser(name, email, password);
+      await AddUser(name, email, isMaster);
       setShowModal(false);
       setName("");
       setEmail("");
-      setPassword("");
+      setIsMaster(false);
       const updatedUsers = await GetAllUsers();
-      setUsers(updatedUsers.result); // Update the users list after adding a new user
+      setUsers(updatedUsers.result);
     } catch (error) {
       console.error("Error adding user:", error);
     }
   };
 
-  const handleDelete = (indexToDelete) => {
+  const handleDelete = async (indexToDelete, email) => {
+    const resp = await GetUserIdByEmail(email);
+    if (resp.status === "SUCCESS") {
+      const deleteUserResponse = await DeleteUser(resp.result.user_id);
+      console.log(deleteUserResponse);
+    } else {
+      console.log("fail");
+    }
+
     const updatedUsers = users.filter((_, index) => index !== indexToDelete);
     setUsers(updatedUsers);
   };
@@ -54,7 +64,7 @@ const AddUsers = () => {
   );
 
   return (
-    <div className="min-h-[50vh] flex flex-col items-center justify-center pt-16 px-4">
+    <div className="min-h-[50vh] w-full flex flex-col items-center justify-center pt-16 px-4">
       <h1 className="text-2xl font-bold mb-6 text-center md:text-left">
         Add Users
       </h1>
@@ -77,8 +87,6 @@ const AddUsers = () => {
           <AiOutlineUserAdd className="mr-2" /> Add
         </button>
       </div>
-
-      {/* Render added users */}
       <div className="w-full max-w-2xl">
         {filteredUsers.length > 0 ? (
           filteredUsers.map((user, index) => (
@@ -95,7 +103,7 @@ const AddUsers = () => {
                 </p>
               </div>
               <button
-                onClick={() => handleDelete(index)}
+                onClick={() => handleDelete(index, user.email)}
                 className="py-2 px-4 bg-[#FF8080] text-white rounded-md"
               >
                 Delete
@@ -107,7 +115,6 @@ const AddUsers = () => {
         )}
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-md shadow-md w-full max-w-2xl">
@@ -127,13 +134,15 @@ const AddUsers = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <input
-                type="password"
+              <select
                 className="w-full py-2 px-4 border rounded-md"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+                value={isMaster}
+                onChange={(e) => setIsMaster(e.target.value === "true")}
+              >
+                <option value="">Select Master Status</option>
+                <option value="true">True</option>
+                <option value="false">False</option>
+              </select>
             </div>
             <div className="flex justify-end space-x-4 mt-4">
               <button

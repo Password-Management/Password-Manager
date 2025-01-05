@@ -5,7 +5,6 @@ import (
 	"log"
 	"password-manager/db"
 	"password-manager/handlers"
-	"password-manager/queue"
 	"password-manager/services"
 	"time"
 
@@ -37,8 +36,8 @@ func Server() {
 	app := fiber.New()
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",                              // Specify allowed origin(s)
-		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH", // Specify allowed methods
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH",
 	}))
 	GetDbCheck()
 	app.Get("/health", func(c *fiber.Ctx) error {
@@ -48,15 +47,7 @@ func Server() {
 		})
 	})
 	var Log *log.Logger
-	go func() {
-		time.Sleep(15 * time.Second)
-		err := queue.QueueConsumer()
-		if err != nil {
-			log.Println("error while reading the queue: " + err.Error())
-			return
-		}
-		log.Println("QUEUE IS READY FOR RECEIVING CONNECTION CREATE PRODUCT ENTRY")
-	}()
+	
 	ser, err := services.NewMasterServiceRequest()
 	if err != nil {
 		log.Println("master service instance starting failure: " + err.Error())

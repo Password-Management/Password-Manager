@@ -46,4 +46,11 @@ CREATE TABLE IF NOT EXISTS login_tbl (
     is_master BOOLEAN NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS creds_tbl (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    otp character varying(100) NOT NULL,
+    is_used BOOLEAN 
+);
+
 COMMIT;

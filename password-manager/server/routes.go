@@ -7,6 +7,10 @@ import (
 )
 
 func Routes(app *fiber.App, h *handlers.Handler) {
+	// Super Service
+	app.Post("/otp", h.CreateOTP)
+	app.Get("/verify", h.VerifyOTP)
+	app.Get("/plan", h.GetPlanInformation)
 	// Login Service
 	login := app.Group("/login")
 	login.Post("/user", h.LoginUser)
@@ -22,11 +26,15 @@ func Routes(app *fiber.App, h *handlers.Handler) {
 	master.Patch("/algorithm", h.UpdateAlgorithmRequest)
 	master.Post("/addUser", h.CreateUserRequest)
 	master.Get("/listUsers", h.ListUserRequest)
+	master.Get("/userbyId", h.GetUserByEmail)
+	master.Delete("/user", h.DeleteUser)
 	//Users Services Api's
 	user := app.Group("/user", RequireUserIDAndMasterID)
 	user.Post("/addwebiste", h.CreatePasswordRequest)
-	user.Post("/getPasswrod", h.GetPasswordRequest)
+	user.Post("/getPassword", h.GetPasswordRequest)
 	user.Get("/listWebiste", h.GetWebsiteRequest)
 	user.Get("/getInfo", h.GetUserInfo)
 	user.Delete("/password", h.DeleteWebsiteEntry)
+	user.Put("/passKey", h.UpdatePassKey)
+	user.Get("/key", h.VerifySpecialKey)
 }

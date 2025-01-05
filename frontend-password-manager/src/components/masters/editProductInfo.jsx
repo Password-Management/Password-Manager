@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import {
   EditAlgorithm,
   GetMastersInfo,
+  UpdateKey
 } from "../../services/masterService/masterservice";
+import { LoaderAnimation } from "../animation";
 
 const EditProductInfo = () => {
   let navigate = useNavigate();
   const [key, setKey] = useState("");
   const [algorithm, setAlgorithm] = useState("");
+  const [isAnimating, setIsAnimating] = useState(false);
   const [count , setCount ] = useState(); 
 
   const handleKeyChange = (e) => {
@@ -27,25 +30,31 @@ const EditProductInfo = () => {
 
   const handleAlgorithmChange = (e) => {
     const selectedAlgorithm = e.target.value;
-    setAlgorithm(selectedAlgorithm); // Update the selected algorithm value
+    setAlgorithm(selectedAlgorithm);
   };
 
   const handleUpdateAlgorithm = async () => {
-    const resp = await EditAlgorithm(algorithm); // Send updated algorithm to backend
+    const resp = await EditAlgorithm(algorithm);
     console.log(resp.result);
   };
 
-  const handleSubmitKey = (e) => {
+  const handleSubmitKey = async(e) => {
     e.preventDefault();
     console.log("Submitted Key: ", key);
-    localStorage.setItem("count", 1);
+    const response = await UpdateKey(key);
+    if (response.status === "SUCCESS") {
+      setIsAnimating(true);
+      setTimeout(() => {
+        localStorage.setItem("specialKey", key);
+        window.location.reload();
+        setIsAnimating(false);
+      }, 5000);
+    }
   };
 
   const navigateForgotPage = () => {
     navigate("/resetpassword");
   };
-
-  // Available algorithms, excluding the one fetched from the backend
   const algorithms = ["RSA", "ASA"];
 
   return (
@@ -55,7 +64,6 @@ const EditProductInfo = () => {
           Configuration Options
         </h2>
         <div className="flex flex-col md:flex-row justify-center items-center gap-6 mt-10 p-4">
-          {/* Edit Key Card */}
           <div className="border border-gray-300 rounded-lg shadow-lg p-6 w-full md:w-80 bg-white">
             <h2 className="text-xl font-bold mb-4">Edit Key</h2>
             {count > 0 ? (
@@ -98,7 +106,6 @@ const EditProductInfo = () => {
             )}
           </div>
 
-          {/* Update Algorithm Card */}
           <div className="border border-gray-300 rounded-lg shadow-lg p-6 w-full md:w-80 bg-white">
             <h2 className="text-xl font-bold mb-4">Update Algorithm</h2>
             <p className="text-gray-600 mb-4">
@@ -106,14 +113,11 @@ const EditProductInfo = () => {
             </p>
             <form onSubmit={handleUpdateAlgorithm}>
               <select
-                value={algorithm} // Set value from state (database default)
+                value={algorithm}
                 onChange={handleAlgorithmChange}
                 className="border border-gray-300 rounded-lg w-full p-2 mb-4 focus:outline-none focus:ring focus:ring-purple-200"
               >
-                {/* Placeholder text */}
                 <option disabled>{"Update the Algorithm"}</option>
-
-                {/* Dynamically render options */}
                 {algorithms.map((algo) => (
                   <option key={algo} value={algo}>
                     {algo === algorithm ? `${algo}` : algo}
@@ -129,6 +133,13 @@ const EditProductInfo = () => {
             </form>
           </div>
         </div>
+        {isAnimating ? (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80">
+          <section className="flex items-center justify-center min-h-screen">
+            { <LoaderAnimation /> }
+          </section>
+        </div>
+      ): (<></>)}
       </section>
     </>
   );

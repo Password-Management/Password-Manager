@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 const PricingPage = () => {
   let navigate = useNavigate();
   const handleClick = (type) => {
-    navigate("/requestproduct", { state: { planType: type } });
+    navigate("/upgradeproduct", { state: { planType: type } });
   };
   return (
     <>
@@ -13,8 +13,7 @@ const PricingPage = () => {
             Our Pricing Plans
           </h2>
           <div className=" flex flex-wrap justify-center gap-3">
-            {/* Basic Plan */}
-            <div className="bg-gray-100 w-full md:w-1/3 lg:w-1/4 bg-white rounded-lg p-8 outline: none">
+            <div className=" w-full md:w-1/3 lg:w-1/4 bg-gray-100 rounded-lg p-8 outline: none">
               <h3 className="text-2xl font-semibold text-center text-gray-800">
                 Basic Plan
               </h3>
@@ -38,8 +37,6 @@ const PricingPage = () => {
                 Choose Plan
               </button>
             </div>
-
-            {/* Pro Plan */}
             <div className="w-full md:w-1/3 lg:w-1/4 bg-[#EADCF0] rounded-lg p-8 outline: none">
               <h3 className="text-2xl font-semibold text-center text-gray-800">
                 Pro Plan
@@ -65,8 +62,6 @@ const PricingPage = () => {
                 Choose Plan
               </button>
             </div>
-
-            {/* Premium Plan */}
             <div className="bg-gray-100 w-full md:w-1/3 lg:w-1/4  rounded-lg p-8 outline:none">
               <h3 className="text-2xl font-semibold text-center text-gray-800">
                 Premium Plan
@@ -74,11 +69,10 @@ const PricingPage = () => {
               <p className="text-center text-gray-600 my-4">$29.99/month</p>
               <ul className="text-gray-600 mb-6">
                 <li className="flex items-center mb-2">
-                  <span className="mr-2 text-green-500">✔</span> Unlimited
-                  Projects
+                  <span className="mr-2 text-green-500">✔</span> 100 Users
                 </li>
                 <li className="flex items-center mb-2">
-                  <span className="mr-2 text-green-500">✔</span> Unlimited
+                  <span className="mr-2 text-green-500">✔</span> 100
                   Passwords
                 </li>
                 <li className="flex items-center mb-2">

@@ -26,6 +26,7 @@ type ListUserRequest struct {
 
 type CreatePasswordRequest struct {
 	WebisteName string `json:"website_name"`
+	UserName    string `json:"user_name"`
 	Password    string `json:"password"`
 }
 
@@ -50,4 +51,9 @@ type MasterLoginRequest struct {
 type UserLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type UserPassKeyUpdateRequest struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }

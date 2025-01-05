@@ -1,12 +1,15 @@
 import { React, useState } from "react";
-
+import { UpdateKey } from "../services/userService/userService";
+import { useNavigate } from "react-router-dom";
 const ResetPage = () => {
+  let navigate = useNavigate()
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [passwordLengthValid, setPasswordLengthValid] = useState(false);
-
+  let updateType = localStorage.getItem("updateType");
+  var heading, placeholder, confirm;
   const toggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword((prevState) => !prevState);
   };
@@ -14,31 +17,47 @@ const ResetPage = () => {
   const handlePasswordChange = (e) => {
     const password = e.target.value;
     setNewPassword(password);
-    setPasswordLengthValid(password.length >= 8); // Ensure password is at least 8 characters long
+    setPasswordLengthValid(password.length >= 8);
   };
 
   const handleConfirmPasswordChange = (e) => {
     setConfirmPassword(e.target.value);
   };
 
-  const handleSubmit = (e) => {
+  if (updateType == "password") {
+    heading = "Set New Password";
+    placeholder = "New Password";
+    confirm = "Confirm Password";
+  } else {
+    heading = "Set New SpecialKey";
+    placeholder = "New SpecialKey";
+    confirm = "Confirm SpecialKey";
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!passwordLengthValid) {
       setError("Password must be at least 8 characters long.");
-    } else if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
     } else {
-      setError("");
-      console.log("Form Submitted");
+      if (updateType == "password") {
+        const reponse = await UpdateKey("pass", newPassword);
+        console.log(reponse.result);
+        if (reponse.result.message === "Password is updated for RSA type user." || reponse.result.message === "Password is updated for ASA type user.") {
+          navigate("/login")
+        }
+      } else {
+        const reponse = await UpdateKey("key", newPassword);
+        if (reponse.result.message === "Special Key is updated for RSA type user." || reponse.result.message === "Special Key is updated for ASA type user.") {
+          navigate("/login")
+        }
+      }
     }
   };
 
   return (
     <>
       <section className="flex flex-col h-screen items-center justify-center mt-5">
-        <h1 className="text-5xl font-semibold text-center mb-6">
-          Set New Password
-        </h1>
+        <h1 className="text-5xl font-semibold text-center mb-6">{heading}</h1>
 
         <form
           onSubmit={handleSubmit}
@@ -48,9 +67,8 @@ const ResetPage = () => {
             className={`p-2 rounded-xl border focus:outline-none focus:ring focus:border-blue-500 w-full ${
               !passwordLengthValid && newPassword ? "border-red-500" : ""
             }`}
-            type="email"
-            name="email"
-            placeholder="New Password"
+            name="new password"
+            placeholder={placeholder}
             value={newPassword}
             onChange={handlePasswordChange}
           />
@@ -64,7 +82,7 @@ const ResetPage = () => {
               }`}
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
-              placeholder="Confirm Password"
+              placeholder={confirm}
               value={confirmPassword}
               onChange={handleConfirmPasswordChange}
             />

@@ -23,9 +23,11 @@ type UserServiceImpl struct {
 type UserService interface {
 	CreateWebsiteEntry(value *models.CreatePasswordRequest, userId string, masterId string) (resp *models.SuccessResponse, err error)
 	GetPassword(value *models.GetPasswordRequest, userId string, masterId string) (resp *models.SuccessResponse, err error)
-	ListWebsites(userId string, masterId string) (resp []*models.SuccessResponse, err error)
+	ListWebsites(userId string, masterId string) (resp []*models.ListWebsiteResponse, err error)
 	GetUserInfo(userId string, masterId string) (resp *models.GetUserInfoResponse, err error)
 	DeletePassword(websiteName string, masterId string, userId string) (*models.DeleteWebsiteResponse, error)
+	UpdatePassKey(value *models.UserPassKeyUpdateRequest, userId string, masterId string) (response *models.SuccessResponse, err error)
+	VerifySpecialKey(userId string, masterId string, specialKey string) (response *models.SuccessResponse, err error)
 }
 
 func (us *UserServiceImpl) SetupDalLayer() error {
@@ -66,11 +68,10 @@ func (us *UserServiceImpl) CreateWebsiteEntry(value *models.CreatePasswordReques
 	if err != nil {
 		return nil, errors.New("error while encrypting your password: " + err.Error())
 	}
-
-	log.Println("the website name = ", value.WebisteName)
 	err = us.PasswordRepo.Create(&models.DbPassword{
 		UserId:      uuid.MustParse(userId),
 		WebisteName: value.WebisteName,
+		UserName:    value.UserName,
 		Password:    encryptedPassword,
 	})
 	if err != nil {
@@ -99,28 +100,32 @@ func (us *UserServiceImpl) GetPassword(value *models.GetPasswordRequest, userId 
 	if err != nil {
 		return nil, errors.New("error while getting the password information as per userinfo: " + err.Error())
 	}
-	log.Println("the private key: ", userInfo.PrivateKey)
+	log.Println(userInfo.PrivateKey)
+	log.Println("the password info = ", PasswordInfo)
 	decryptedPassword, err := encryption.DecryptPassword(privateKey, PasswordInfo.Password)
 	if err != nil {
 		return nil, errors.New("error while decrypting the password: " + err.Error())
 	}
+	log.Println("the decrypt password = ", decryptedPassword)
 	return &models.SuccessResponse{
-		Message: "The password for your webiste " + value.WebisteName + " is " + decryptedPassword,
+		Message: decryptedPassword,
 	}, nil
 }
 
-func (us *UserServiceImpl) ListWebsites(userId string, masterId string) (resp []*models.SuccessResponse, err error) {
+func (us *UserServiceImpl) ListWebsites(userId string, masterId string) (resp []*models.ListWebsiteResponse, err error) {
 	err = us.SetupDalLayer()
 	if err != nil {
 		return nil, errors.New("error while setting up the dal connection")
 	}
+
 	PasswordInfo, err := us.PasswordRepo.FindAll(uuid.MustParse(userId))
 	if err != nil {
 		return nil, errors.New("error while fetching the password info: " + err.Error())
 	}
 	for _, info := range PasswordInfo {
-		var dummyresponse models.SuccessResponse
-		dummyresponse.Message = info.WebisteName
+		var dummyresponse models.ListWebsiteResponse
+		dummyresponse.WebsiteName = info.WebisteName
+		dummyresponse.UserName = info.UserName
 		resp = append(resp, &dummyresponse)
 	}
 	return resp, nil
@@ -168,7 +173,7 @@ func (us *UserServiceImpl) DeletePassword(websiteName string, masterId string, u
 	flag := false
 	if algo == "RSA" {
 		_, err := us.UserRepo.FindByRSA(&models.DBRSAUser{
-			Id: uuid.MustParse(userId),
+			UserId: uuid.MustParse(userId),
 		})
 		if err != nil {
 			return nil, err
@@ -176,7 +181,7 @@ func (us *UserServiceImpl) DeletePassword(websiteName string, masterId string, u
 		flag = true
 	} else {
 		_, err := us.UserRepo.FindByASA(&models.DBASAUser{
-			Id: uuid.MustParse(userId),
+			UserId: uuid.MustParse(userId),
 		})
 		if err != nil {
 			return nil, err
@@ -184,7 +189,7 @@ func (us *UserServiceImpl) DeletePassword(websiteName string, masterId string, u
 		flag = true
 	}
 	if !flag {
-		return nil, errors.New("user not found.")
+		return nil, errors.New("user not found")
 	}
 	//Find if the website exist and delete it
 	websiteDetails, err := us.PasswordRepo.FindWebsiteName(websiteName, uuid.MustParse(userId))
@@ -197,5 +202,95 @@ func (us *UserServiceImpl) DeletePassword(websiteName string, masterId string, u
 	}
 	return &models.DeleteWebsiteResponse{
 		Response: "Entry for websiteName " + websiteName + " deleted successfully",
+	}, nil
+}
+
+func (us *UserServiceImpl) UpdatePassKey(value *models.UserPassKeyUpdateRequest, userId string, masterId string) (response *models.SuccessResponse, err error) {
+	err = us.SetupDalLayer()
+	if err != nil {
+		return nil, errors.New("error while setting up the dal connection for deleting the website entry")
+	}
+	log.Println("the request Body: ", value)
+	masterInfo, err := us.MasterRepo.FindBy(&models.DBMaster{
+		Id: uuid.MustParse(masterId),
+	})
+	if err != nil {
+		return nil, err
+	}
+	algo := masterInfo.Algorithm
+	var message string
+	if algo == "RSA" {
+		userDetails, err := us.UserRepo.FindByRSA(&models.DBRSAUser{
+			UserId: uuid.MustParse(userId),
+		})
+		if err != nil {
+			return nil, errors.New("error while finding the userDetails: " + err.Error())
+		}
+		if value.Type == "key" {
+			userDetails.SpecialKey = value.Value
+			message = "Special Key is updated for RSA type user."
+		} else if value.Type == "pass" {
+			userDetails.Password = value.Value
+			message = "Password is updated for RSA type user."
+		}
+	} else {
+		userDetails, err := us.UserRepo.FindByASA(&models.DBASAUser{
+			UserId: uuid.MustParse(userId),
+		})
+		if err != nil {
+			return nil, errors.New("error while finding the userDetails: " + err.Error())
+		}
+		if value.Type == "key" {
+			userDetails.SpecialKey = value.Value
+			message = "Special Key is updated for ASA type user."
+		} else if value.Type == "pass" {
+			userDetails.Password = value.Value
+			message = "Password is updated for ASA type user."
+		}
+	}
+	return &models.SuccessResponse{
+		Message: message,
+	}, nil
+}
+
+func (us *UserServiceImpl) VerifySpecialKey(userId string, masterId string, specialKey string) (response *models.SuccessResponse, err error) {
+	err = us.SetupDalLayer()
+	if err != nil {
+		return nil, errors.New("error while setting up the dal connection for checking the website Key")
+	}
+	masterInfo, err := us.MasterRepo.FindBy(&models.DBMaster{
+		Id: uuid.MustParse(masterId),
+	})
+	if err != nil {
+		return nil, err
+	}
+	algo := masterInfo.Algorithm
+	if algo == "RSA" {
+		userDetails, err := us.UserRepo.FindByRSA(&models.DBRSAUser{
+			UserId: uuid.MustParse(userId),
+		})
+		if err != nil {
+			return nil, errors.New("error while finding the userDetails: " + err.Error())
+		}
+		if userDetails.SpecialKey == specialKey {
+			return &models.SuccessResponse{
+				Message: "Success",
+			}, nil
+		}
+	} else {
+		userDetails, err := us.UserRepo.FindByASA(&models.DBASAUser{
+			UserId: uuid.MustParse(userId),
+		})
+		if err != nil {
+			return nil, errors.New("error while finding the userDetails: " + err.Error())
+		}
+		if userDetails.SpecialKey == specialKey {
+			return &models.SuccessResponse{
+				Message: "Success",
+			}, nil
+		}
+	}
+	return &models.SuccessResponse{
+		Message: "Failure",
 	}, nil
 }

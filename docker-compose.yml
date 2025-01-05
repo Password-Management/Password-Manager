@@ -28,21 +28,6 @@ services:
     volumes:
       - ./mailhog_data:/data
 
-  rabbitmq:
-    image: "rabbitmq:3.13-management"
-    container_name: rabbitmq
-    ports:
-      - "5672:5672" # RabbitMQ main port
-      - "15672:15672" # RabbitMQ management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-      - rabbitmq_log:/var/log/rabbitmq
-    networks:
-      - app-network
-
   # Go Backend Service
   password-manager:
     build:
@@ -58,29 +43,12 @@ services:
     depends_on:
       - db
       - mailhog
-      - rabbitmq
     volumes:
       - ./config.yml:/app/config.yml
     networks:
       - app-network
 
-  # Demo-service
-  demo-service:
-    build:
-      context: .
-      dockerfile: demo-server/Dockerfile
-    container_name: demo-server
-    ports:
-      - "8001:8001"
-    depends_on:
-      - db
-      - mailhog
-      - rabbitmq
-    volumes:
-      - app-data:/app/data
-    networks:
-      - app-network
-
+  
   # frontend:
   #   build:
   #     context: .
@@ -98,8 +66,6 @@ services:
 volumes:
   db-data:
   app-data:
-  rabbitmq_data:
-  rabbitmq_log:
 
 networks:
   app-network:
