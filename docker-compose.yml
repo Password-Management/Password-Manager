@@ -49,19 +49,19 @@ services:
       - app-network
 
   
-  # frontend:
-  #   build:
-  #     context: .
-  #     dockerfile: frontend-password-manager/Dockerfile  
-  #   container_name: frontend-password-manager
-  #   ports:
-  #     - "3001:80"
-  #   depends_on:
-  #     - password-manager
-  #   networks:
-  #     - app-network
-  #   environment:
-  #     - CHOKIDAR_USEPOLLING=true
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend-password-manager/Dockerfile  
+    container_name: frontend-password-manager
+    ports:
+      - "3001:80"
+    depends_on:
+      - password-manager
+    networks:
+      - app-network
+    environment:
+      - CHOKIDAR_USEPOLLING=true
 
 volumes:
   db-data:
